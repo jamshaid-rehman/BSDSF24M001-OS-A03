@@ -4,7 +4,8 @@ int main() {
     char* cmdline;
     char** arglist;
 
-    while ((cmdline = read_cmd(PROMPT, stdin)) != NULL) {
+    // readline() prints the prompt, handles line editing, arrow keys and Tab completion
+    while ((cmdline = readline(PROMPT)) != NULL) {
 
         // Handle !n BEFORE tokenizing or adding to history
         if (cmdline[0] == '!') {
@@ -27,8 +28,10 @@ int main() {
                 break;
             }
         }
-        if (!blank)
-            add_to_history(cmdline);
+        if (!blank) {
+            add_history(cmdline);       // readline's history (Up/Down arrows)
+            add_to_history(cmdline);    // our own history (history command and !n)
+        }
 
         if ((arglist = tokenize(cmdline)) != NULL) {
             if (handle_builtin(arglist) == 0) {
