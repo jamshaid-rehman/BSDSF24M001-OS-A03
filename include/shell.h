@@ -19,7 +19,8 @@
 // Function prototypes
 char* read_cmd(char* prompt, FILE* fp);
 char** tokenize(char* cmdline);
-int execute(char** arglist);
+int execute(char** arglist, int background, const char* cmdtext);
+void reap_jobs(void);
 int handle_builtin(char** arglist);
 
 #define HISTORY_SIZE 20
