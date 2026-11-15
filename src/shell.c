@@ -1,62 +1,58 @@
 #include "shell.h"
 
+#define MAX_TOKENS 128
+
+// Kept for compatibility (main now uses readline)
 char* read_cmd(char* prompt, FILE* fp) {
     printf("%s", prompt);
-    char* cmdline = (char*) malloc(sizeof(char) * MAX_LEN);
-    int c, pos = 0;
-
-    while ((c = getc(fp)) != EOF) {
-        if (c == '\n') break;
-        cmdline[pos++] = c;
+    char* buf = malloc(MAX_LEN);
+    if (fgets(buf, MAX_LEN, fp) == NULL) {
+        free(buf);
+        return NULL;
     }
-
-    if (c == EOF && pos == 0) {
-        free(cmdline);
-        return NULL; // Handle Ctrl+D
-    }
-    
-    cmdline[pos] = '\0';
-    return cmdline;
+    return buf;
 }
 
+// Splits a line into tokens. Understands "double" and 'single' quotes,
+// and treats < > | as separate tokens even without spaces.
 char** tokenize(char* cmdline) {
-    // Edge case: empty command line
-    if (cmdline == NULL || cmdline[0] == '\0' || cmdline[0] == '\n') {
-        return NULL;
-    }
+    char** args = malloc(MAX_TOKENS * sizeof(char*));
+    int n = 0;
+    char* p = cmdline;
 
-    char** arglist = (char**)malloc(sizeof(char*) * (MAXARGS + 1));
-    for (int i = 0; i < MAXARGS + 1; i++) {
-        arglist[i] = (char*)malloc(sizeof(char) * ARGLEN);
-        bzero(arglist[i], ARGLEN);
-    }
+    while (*p && n < MAX_TOKENS - 1) {
+        while (*p == ' ' || *p == '\t' || *p == '\n') p++;
+        if (!*p) break;
 
-    char* cp = cmdline;
-    char* start;
-    int len;
-    int argnum = 0;
+        char buf[MAX_LEN];
+        int len = 0;
 
-    while (*cp != '\0' && argnum < MAXARGS) {
-        while (*cp == ' ' || *cp == '\t') cp++; // Skip leading whitespace
-        
-        if (*cp == '\0') break; // Line was only whitespace
-
-        start = cp;
-        len = 1;
-        while (*++cp != '\0' && !(*cp == ' ' || *cp == '\t')) {
-            len++;
+        if (*p == '<' || *p == '>' || *p == '|') {
+            buf[len++] = *p++;
+        } else {
+            char quote = 0;
+            while (*p && len < MAX_LEN - 1) {
+                if (quote) {
+                    if (*p == quote) { quote = 0; p++; }
+                    else buf[len++] = *p++;
+                } else if (*p == '"' || *p == '\'') {
+                    quote = *p++;
+                } else if (*p == ' ' || *p == '\t' || *p == '\n' ||
+                           *p == '<' || *p == '>' || *p == '|') {
+                    break;
+                } else {
+                    buf[len++] = *p++;
+                }
+            }
         }
-        strncpy(arglist[argnum], start, len);
-        arglist[argnum][len] = '\0';
-        argnum++;
+        buf[len] = '\0';
+        args[n++] = strdup(buf);
     }
+    args[n] = NULL;
 
-    if (argnum == 0) { // No arguments were parsed
-        for(int i = 0; i < MAXARGS + 1; i++) free(arglist[i]);
-        free(arglist);
+    if (n == 0) {
+        free(args);
         return NULL;
     }
-
-    arglist[argnum] = NULL;
-    return arglist;
+    return args;
 }

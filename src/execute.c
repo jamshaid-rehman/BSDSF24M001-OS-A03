@@ -36,7 +36,6 @@ static void add_job(pid_t pid, const char* cmd) {
     job_count++;
 }
 
-// Returns 1 if the pid was in the list (and removes it), 0 otherwise
 static int remove_job(pid_t pid, char* cmd_out, size_t size) {
     for (int i = 0; i < job_count; i++) {
         if (job_list[i].pid == pid) {
@@ -51,7 +50,6 @@ static int remove_job(pid_t pid, char* cmd_out, size_t size) {
     return 0;
 }
 
-// Non-blocking cleanup of finished background children (prevents zombies)
 void reap_jobs(void) {
     int status;
     pid_t pid;
@@ -92,14 +90,15 @@ static int apply_redirections(char** argv) {
     return 0;
 }
 
-// ---------- External command execution (pipes, redirection, background) ----------
+// ---------- External command execution ----------
+// Returns the exit status of the (last) command: 0 = success, non-zero = failure
 int execute(char* arglist[], int background, const char* cmdtext) {
     int ncmds = 1;
     for (int i = 0; arglist[i] != NULL; i++) {
         if (strcmp(arglist[i], "|") == 0) {
             if (i == 0 || arglist[i + 1] == NULL || strcmp(arglist[i + 1], "|") == 0) {
                 fprintf(stderr, "syntax error near |\n");
-                return 0;
+                return 1;
             }
             ncmds++;
         }
@@ -151,7 +150,7 @@ int execute(char* arglist[], int background, const char* cmdtext) {
                 exit(1);
             execvp(argv[0], argv);
             perror("Command not found");
-            exit(1);
+            exit(127);
         }
 
         // ----- parent -----
@@ -165,20 +164,30 @@ int execute(char* arglist[], int background, const char* cmdtext) {
 
     if (prev_read != -1) close(prev_read);
 
+    int last_status = 0;
+
     if (background) {
-        // Do NOT wait: remember the last process of the pipeline and return to the prompt
         if (launched > 0) {
             add_job(pids[launched - 1], cmdtext);
             printf("[bg] started pid %d\n", pids[launched - 1]);
         }
     } else {
-        // Foreground: wait for exactly our own children
-        for (int i = 0; i < launched; i++)
-            waitpid(pids[i], NULL, 0);
+        if (launched == 0)
+            last_status = 1;
+        for (int i = 0; i < launched; i++) {
+            int st = 0;
+            waitpid(pids[i], &st, 0);
+            if (i == launched - 1) {    // the status of the last command is the result
+                if (WIFEXITED(st))
+                    last_status = WEXITSTATUS(st);
+                else
+                    last_status = 128 + WTERMSIG(st);
+            }
+        }
     }
 
     free(pids);
-    return 0;
+    return last_status;
 }
 
 // ---------- Built-in commands ----------
@@ -207,12 +216,13 @@ int handle_builtin(char** arglist) {
         printf("  jobs            - list running background jobs\n");
         printf("  history         - show the list of previous commands\n");
         printf("  !n              - re-run the n-th command from history\n");
-        printf("Operators: <  >  |  (spaces around them), ; chains commands, & runs in background\n");
+        printf("Operators: <  >  |  ; (chain)  & (background)\n");
+        printf("Control: if <cmd> / then / else / fi (one per line)\n");
         return 1;
     }
 
     if (strcmp(arglist[0], "jobs") == 0) {
-        reap_jobs();                    // drop jobs that already finished
+        reap_jobs();
         if (job_count == 0) {
             printf("No background jobs.\n");
         } else {

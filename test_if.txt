@@ -1,0 +1,21 @@
+if true
+then
+echo TEST1 true branch
+else
+echo TEST1 false branch
+fi
+if false
+then
+echo TEST2 true branch
+else
+echo TEST2 false branch
+fi
+if grep "root" /etc/passwd > /dev/null
+then
+echo TEST3 Found root
+fi
+if [ -f nofile.txt ]
+then
+echo TEST4 should NOT print
+fi
+exit
