@@ -215,7 +215,8 @@ int handle_builtin(char** arglist) {
         printf("  help            - show this help message\n");
         printf("  jobs            - list running background jobs\n");
         printf("  history         - show the list of previous commands\n");
-        printf("  set             - show all shell variables\n");
+        printf("  set             - list all shell variables and their values\n");
+        printf("  set             - list all shell variables and their values\n");
         printf("  NAME=value      - define a variable (use $NAME to read it)\n");
         printf("  !n              - re-run the n-th command from history\n");
         printf("Operators: <  >  |  ; (chain)  & (background)\n");
