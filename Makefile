@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Iinclude
 LDFLAGS = -lreadline
-SRC = src/main.c src/shell.c src/execute.c
+SRC = src/main.c src/shell.c src/execute.c src/variables.c
 OBJ = $(SRC:src/%.c=obj/%.o)
 BIN = bin/myshell
 

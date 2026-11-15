@@ -215,6 +215,8 @@ int handle_builtin(char** arglist) {
         printf("  help            - show this help message\n");
         printf("  jobs            - list running background jobs\n");
         printf("  history         - show the list of previous commands\n");
+        printf("  set             - show all shell variables\n");
+        printf("  NAME=value      - define a variable (use $NAME to read it)\n");
         printf("  !n              - re-run the n-th command from history\n");
         printf("Operators: <  >  |  ; (chain)  & (background)\n");
         printf("Control: if <cmd> / then / else / fi (one per line)\n");
@@ -229,6 +231,20 @@ int handle_builtin(char** arglist) {
             for (int i = 0; i < job_count; i++)
                 printf("[%d] %d  %s\n", i + 1, job_list[i].pid, job_list[i].cmd);
         }
+        return 1;
+    }
+
+    if (strcmp(arglist[0], "set") == 0) {
+        print_variables();
+        return 1;
+    }
+
+    // NAME=value  ->  store the variable (no fork)
+    if (is_assignment(arglist[0])) {
+        char* eq = strchr(arglist[0], '=');
+        *eq = '\0';                         // split into NAME and value
+        set_variable(arglist[0], eq + 1);
+        *eq = '=';                          // restore the token
         return 1;
     }
 

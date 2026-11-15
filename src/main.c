@@ -2,7 +2,7 @@
 #include <dirent.h>
 
 // ---------- Tab completion for command names ----------
-static char* builtins[] = {"cd", "exit", "help", "jobs", "history", NULL};
+static char* builtins[] = {"cd", "exit", "help", "jobs", "history", "set", NULL};
 
 static char* command_generator(const char* text, int state) {
     static int b;
@@ -82,6 +82,7 @@ static int run_one(char* seg) {
     char* text = strdup(seg);
     char** arglist = tokenize(seg);
     if (arglist != NULL) {
+        expand_variables(arglist);          // replace $NAME with its value
         if (handle_builtin(arglist) == 0)
             status = execute(arglist, background, text);
         for (int i = 0; arglist[i] != NULL; i++)

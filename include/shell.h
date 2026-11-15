@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <ctype.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -21,6 +22,13 @@ char* read_cmd(char* prompt, FILE* fp);
 char** tokenize(char* cmdline);
 int execute(char** arglist, int background, const char* cmdtext);
 void reap_jobs(void);
+
+// Shell variables
+int is_assignment(const char* tok);
+void set_variable(const char* name, const char* value);
+const char* get_variable(const char* name);
+void print_variables(void);
+void expand_variables(char** arglist);
 int handle_builtin(char** arglist);
 
 #define HISTORY_SIZE 20
